@@ -1,0 +1,201 @@
+run:
+  concurrency: 3
+  timeout: 15m
+  issues-exit-code: 1
+  tests: true
+
+  skip-dirs:
+    - test/data
+  skip-files:
+
+  # list of build tags, all linters use it. Default is empty list
+  build-tags:
+    - e2e
+
+# output configuration options
+output:
+  # colored-line-number|line-number|json|tab|checkstyle|code-climate, default is "colored-line-number"
+  format: code-climate
+
+  # print lines of code with issue, default is true
+  print-issued-lines: true
+
+  # print linter name in the end of issue text, default is true
+  print-linter-name: true
+
+  uniq-by-line: false
+
+# all available settings of specific linters
+linters-settings:
+  errcheck:
+    check-type-assertions: false
+
+    check-foonk: true
+
+  govet:
+    check-shadowing: false
+
+  golint:
+    min-confidence: 0.8
+
+  gofmt:
+    simplify: true
+  gocyclo:
+    min-complexity: 18
+  maligned:
+    suggest-new: true
+  dupl:
+    threshold: 175
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  funlen:
+    lines: 80
+    statements: 50
+  godox:
+    keywords:
+      - HACK
+      - OPTIMIZE
+      - TODO
+      - BUG
+  misspell:
+    locale: UK
+    ignore-words:
+      - color
+  lll:
+    line-length: 120
+    tab-width: 2
+  unused:
+    check-exported: false
+
+  unparam:
+    check-exported: false
+
+  nakedret:
+    max-func-lines: 0
+  prealloc:
+    simple: true
+    range-loops: true # Report preallocation suggestions on range loops, true by default
+    for-loops: false # Report preallocation suggestions on for loops, false by default
+  gocritic:
+    enabled-checks:
+
+    disabled-checks:
+      - regexpMust
+
+    enabled-tags:
+      - performance
+
+    settings: # settings passed to gocritic
+      captLocal: # must be valid enabled check name
+        paramsOnly: true
+      rangeValCopy:
+        sizeThreshold: 32
+
+linters:
+  disable-all: true
+  enable:
+    - asciicheck
+    - bodyclose
+    - deadcode
+    - dupl
+    - errcheck
+    - errorlint
+    - exhaustive
+    - exportloopref
+    - funlen
+    - gci
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godox
+    - gofmt
+    - gofumpt
+    - goheader
+    - golint
+    - gomodguard
+    - goprintffuncname
+    - gosimple 
+    - govet 
+    - ineffassign
+    - misspell
+    - nakedret
+    - nestif
+    - noctx
+    - nolintlint
+    - rowserrcheck
+    - sqlclosecheck
+    - staticcheck 
+    - structcheck
+    - stylecheck
+    - tparallel
+    - typecheck
+    - unconvert
+    - unparam
+    - varcheck
+    - whitespace
+    # Disabled
+    # - wsl
+    # - depguard
+    # - dogsled
+    # - exhaustivestruct
+    # - godot
+    # - goerr113
+    # - goimports
+    # - lll
+    # - maligned
+    # - nlreturn
+    # - prealloc
+    # - testpackage
+    # - wrapcheck
+  disable-all: false
+  fast: false
+
+severity: 
+  default-severity: error
+  rules:
+    - linters:
+        - gomodguard
+      severity: warning
+
+issues:
+  exclude-rules:
+    - linters:
+        - gochecknoglobals
+        - gochecknoinits
+      path: cmd/
+
+    - path: _mock\.go
+      linters:
+        - gomnd
+        - gocritic
+
+    - path: _test\.go
+      linters:
+        - unused
+        - deadcode
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+        - gocritic
+        - funlen
+
+    - linters:
+        - staticcheck
+      text: "SA9003:"
+
+    - linters:
+        - lll
+      text: "^//go:generate "
+
+  exclude-use-default: false
+
+  max-issues-per-linter: 0
+
+  max-same-issues: 0
+
+  new: false
