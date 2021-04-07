@@ -15,7 +15,13 @@ lint:
 
 # Runs the examples
 bird-example:
-	cd cmd/example && go run .
+	@cd cmd/image && go run .
 	
 street-example:
-	cd cmd/example && go run . -i ../../data/example_images/street.jpg
+	@cd cmd/image && go run . -i ../../data/example_images/street.jpg
+
+webcam-example:
+	@cd cmd/webcam && go run .
+
+cuda-example:
+	@cd cmd/cuda && go run .

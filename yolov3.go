@@ -164,11 +164,19 @@ func (y *yoloNet) processOutputs(frame gocv.Mat, outputs []gocv.Mat) ([]ObjectDe
 			}
 		}
 	}
+	if len(bboxes) == 0 {
+		return detections, nil
+	}
 	indices := make([]int, len(bboxes))
 
 	gocv.NMSBoxes(bboxes, confidences, y.confidenceThreshold, y.nmsThreshold, indices)
 	result := []ObjectDetection{}
-	for _, indice := range indices {
+	for i, indice := range indices {
+		// If we encounter value 0 skip the detection
+		// except for the first indice
+		if i != 0 && indice == 0 {
+			continue
+		}
 		result = append(result, detections[indice])
 	}
 	return result, nil
