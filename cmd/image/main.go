@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	vehicleWeights = "../../data/yolov3/yolov3.weights"
-	vehicleNetcfg  = "../../data/yolov3/yolov3.cfg"
-	cocoNames      = "../../data/yolov3/coco.names"
+	vehicleWeights = "../../data/yolov4/yolov4.weights"
+	vehicleNetcfg  = "../../data/yolov4/yolov4.cfg"
+	cocoNames      = "../../data/yolov4/coco.names"
 )
 
 func main() {

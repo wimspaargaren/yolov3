@@ -116,7 +116,8 @@ func (y *yoloNet) Close() error {
 
 // GetDetections retrieve predicted detections from given matrix
 func (y *yoloNet) GetDetections(frame gocv.Mat) ([]ObjectDetection, error) {
-	fl := []string{"yolo_82", "yolo_94", "yolo_106"}
+	fl := getOutputsNames(&y.net)
+	// fl := []string{"yolo_82", "yolo_94", "yolo_106"}
 	blob := gocv.BlobFromImage(frame, 1.0/255.0, image.Pt(y.inputWidth, y.inputHeight), gocv.NewScalar(0, 0, 0, 0), true, false)
 	defer func() {
 		err := blob.Close()
@@ -133,6 +134,18 @@ func (y *yoloNet) GetDetections(frame gocv.Mat) ([]ObjectDetection, error) {
 	}
 
 	return detections, nil
+}
+
+func getOutputsNames(net *gocv.Net) []string {
+	var outputLayers []string
+	for _, i := range net.GetUnconnectedOutLayers() {
+		layer := net.GetLayer(i)
+		layerName := layer.GetName()
+		if layerName != "_input" {
+			outputLayers = append(outputLayers, layerName)
+		}
+	}
+	return outputLayers
 }
 
 // processOutputs process detected rows in the outputs

@@ -1,10 +1,10 @@
 .PHONY: all
 
-data/yolov3:
-	@$(shell ./getModels.sh)
+data/yolov4:
+	@$(shell ./getModelsV4.sh)
 
 # Retrieves yolov3 models
-models: | data/yolov3
+models: | data/yolov4
 	@
 
 # Runs lint
