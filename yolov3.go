@@ -54,6 +54,7 @@ type ObjectDetection struct {
 type Net interface {
 	Close() error
 	GetDetections(gocv.Mat) ([]ObjectDetection, error)
+	GetDetectionsWithFilter(gocv.Mat, map[string]bool) ([]ObjectDetection, error)
 }
 
 // the net implementation
@@ -116,6 +117,10 @@ func (y *yoloNet) Close() error {
 
 // GetDetections retrieve predicted detections from given matrix
 func (y *yoloNet) GetDetections(frame gocv.Mat) ([]ObjectDetection, error) {
+	return y.GetDetectionsWithFilter(frame, make(map[string]bool))
+}
+
+func (y *yoloNet) GetDetectionsWithFilter(frame gocv.Mat, classIDsFilter map[string]bool) ([]ObjectDetection, error) {
 	fl := []string{"yolo_82", "yolo_94", "yolo_106"}
 	blob := gocv.BlobFromImage(frame, 1.0/255.0, image.Pt(y.inputWidth, y.inputHeight), gocv.NewScalar(0, 0, 0, 0), true, false)
 	defer func() {
@@ -127,7 +132,7 @@ func (y *yoloNet) GetDetections(frame gocv.Mat) ([]ObjectDetection, error) {
 	y.net.SetInput(blob, "data")
 
 	outputs := y.net.ForwardLayers(fl)
-	detections, err := y.processOutputs(frame, outputs)
+	detections, err := y.processOutputs(frame, outputs, classIDsFilter)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +141,7 @@ func (y *yoloNet) GetDetections(frame gocv.Mat) ([]ObjectDetection, error) {
 }
 
 // processOutputs process detected rows in the outputs
-func (y *yoloNet) processOutputs(frame gocv.Mat, outputs []gocv.Mat) ([]ObjectDetection, error) {
+func (y *yoloNet) processOutputs(frame gocv.Mat, outputs []gocv.Mat, filter map[string]bool) ([]ObjectDetection, error) {
 	detections := []ObjectDetection{}
 	bboxes := []image.Rectangle{}
 	confidences := []float32{}
@@ -150,6 +155,9 @@ func (y *yoloNet) processOutputs(frame gocv.Mat, outputs []gocv.Mat) ([]ObjectDe
 			row := data[i : i+output.Cols()]
 			scores := row[5:]
 			classID, confidence := getClassIDAndConfidence(scores)
+			if y.isFiltered(classID, filter) {
+				continue
+			}
 			if confidence > y.confidenceThreshold {
 				confidences = append(confidences, confidence)
 
@@ -180,6 +188,10 @@ func (y *yoloNet) processOutputs(frame gocv.Mat, outputs []gocv.Mat) ([]ObjectDe
 		result = append(result, detections[indice])
 	}
 	return result, nil
+}
+
+func (y *yoloNet) isFiltered(classID int, classIDs map[string]bool) bool {
+	return classIDs[y.cocoNames[classID]]
 }
 
 // calculateBoundingBox calculate the bounding box of the detected object
