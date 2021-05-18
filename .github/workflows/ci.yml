@@ -1,0 +1,52 @@
+name: CI
+
+on: [push]
+
+jobs:
+  go-mod:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16.x
+      - uses: actions/checkout@v2
+      - name: Check go mod
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.40.0
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run tests
+        run: |
+          make ci-init
+          TEST_OUT=$(make ci-test | tail -n 1)
+          REF=${{ github.ref }}
+          IFS='/' read -ra PATHS <<< "$REF"
+          BRANCH_NAME="${PATHS[1]}_${PATHS[2]}"
+          echo $BRANCH_NAME
+          echo "BRANCH=$(echo ${BRANCH_NAME})" >> $GITHUB_ENV
+          COVERAGE_PERCENTAGE=$(echo $(echo $TEST_OUT | sed -n 's/.*)\s*\(.*\)/\1/p'))
+          echo "COVERAGE=$(echo ${COVERAGE_PERCENTAGE})" >> $GITHUB_ENV
+      - name: Create the Badge
+        uses: schneegans/dynamic-badges-action@v1.0.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 336567a087162bcad4e55ebe4b17b457
+          filename: yolov3__${{ env.BRANCH }}.json
+          label: Test Coverage
+          message: ${{ env.COVERAGE }}
+          color: green
+          namedLogo: Go
