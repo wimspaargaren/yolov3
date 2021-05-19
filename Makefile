@@ -10,8 +10,8 @@ models: | data/yolov3
 # Runs lint
 lint:
 	@echo Linting...
-	@golangci-lint  -v --concurrency=3 --config=.golangci.yml --issues-exit-code=0 run \
-	--out-format=colored-line-number
+	@golangci-lint  -v --concurrency=3 --config=.golangci.yml --issues-exit-code=1 run \
+	--out-format=colored-line-number 
 
 # Run tests
 test:
@@ -40,6 +40,9 @@ cuda-example:
 # CI commands
 ci-init:
 	@docker build -t yolov3-ci .
+
+ci-lint:
+	@docker run yolov3-ci make lint
 
 ci-test:
 	@docker run yolov3-ci make test
