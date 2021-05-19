@@ -1,4 +1,4 @@
-.PHONY: all
+.PHONY: all test lint bird-example street-example cuda-example ci-init ci-lint ci-test
 
 data/yolov3:
 	@$(shell ./getModels.sh)

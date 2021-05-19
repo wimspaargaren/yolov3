@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/wimspaargaren/yolov3/internal/ml"
 	"gocv.io/x/gocv"
 )
 
@@ -15,8 +16,8 @@ const (
 	inputWidth  = 416
 	inputHeight = 416
 
-	confThreshold = 0.5
-	nmsThreshold  = 0.4
+	confThreshold float32 = 0.5
+	nmsThreshold  float32 = 0.4
 )
 
 // Config optional config of the net
@@ -28,6 +29,8 @@ type Config struct {
 
 	NetTargetType  gocv.NetTargetType
 	NetBackendType gocv.NetBackendType
+
+	newNet func(string, string) ml.NeuralNet
 }
 
 // DefaultConfig creates new default config
@@ -39,6 +42,8 @@ func DefaultConfig() Config {
 		NMSThreshold:        nmsThreshold,
 		NetTargetType:       gocv.NetTargetCPU,
 		NetBackendType:      gocv.NetBackendDefault,
+
+		newNet: initializeNet,
 	}
 }
 
@@ -59,7 +64,7 @@ type Net interface {
 
 // the net implementation
 type yoloNet struct {
-	net       gocv.Net
+	net       ml.NeuralNet
 	cocoNames []string
 
 	inputWidth          int
@@ -69,14 +74,14 @@ type yoloNet struct {
 }
 
 // NewNet creates new yolo net for given weight path, config and coconames list
-func NewNet(weightPath, configPath, cocoNamePath string) (Net, error) {
-	return NewNetWithConfig(weightPath, configPath, cocoNamePath, DefaultConfig())
+func NewNet(weightsPath, configPath, cocoNamePath string) (Net, error) {
+	return NewNetWithConfig(weightsPath, configPath, cocoNamePath, DefaultConfig())
 }
 
 // NewNetWithConfig creates new yolo net with given config
-func NewNetWithConfig(weightPath, configPath, cocoNamePath string, config Config) (Net, error) {
-	if _, err := os.Stat(weightPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("path to net weight not found")
+func NewNetWithConfig(weightsPath, configPath, cocoNamePath string, config Config) (Net, error) {
+	if _, err := os.Stat(weightsPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("path to net weights not found")
 	}
 
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
@@ -88,14 +93,9 @@ func NewNetWithConfig(weightPath, configPath, cocoNamePath string, config Config
 		return nil, err
 	}
 
-	net := gocv.ReadNet(weightPath, configPath)
+	net := config.newNet(weightsPath, configPath)
 
-	err = net.SetPreferableBackend(config.NetBackendType)
-	if err != nil {
-		return nil, err
-	}
-
-	err = net.SetPreferableTarget(config.NetTargetType)
+	err = setNetTargetTypes(net, config)
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +108,24 @@ func NewNetWithConfig(weightPath, configPath, cocoNamePath string, config Config
 		confidenceThreshold: config.ConfidenceThreshold,
 		nmsThreshold:        config.NMSThreshold,
 	}, nil
+}
+
+func initializeNet(weightsPath, configPath string) ml.NeuralNet {
+	net := gocv.ReadNet(weightsPath, configPath)
+	return &net
+}
+
+func setNetTargetTypes(net ml.NeuralNet, config Config) error {
+	err := net.SetPreferableBackend(config.NetBackendType)
+	if err != nil {
+		return err
+	}
+
+	err = net.SetPreferableTarget(config.NetTargetType)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Close closes the net

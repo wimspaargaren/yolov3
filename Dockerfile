@@ -7,3 +7,5 @@ RUN go get -u github.com/rakyll/gotest
 COPY . /go/src/github.com/wimspaargaren/yolov3
 
 WORKDIR /go/src/github.com/wimspaargaren/yolov3
+# In order to test a happy flow we need to have the actual config and weights
+RUN make models
