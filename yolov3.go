@@ -209,11 +209,17 @@ func (y *yoloNet) processOutputs(frame gocv.Mat, outputs []gocv.Mat, filter map[
 }
 
 func (y *yoloNet) isFiltered(classID int, classIDs map[string]bool) bool {
+	if classIDs == nil {
+		return false
+	}
 	return classIDs[y.cocoNames[classID]]
 }
 
 // calculateBoundingBox calculate the bounding box of the detected object
 func calculateBoundingBox(frame gocv.Mat, row []float32) image.Rectangle {
+	if len(row) < 4 {
+		return image.Rect(0, 0, 0, 0)
+	}
 	centerX := int(row[0] * float32(frame.Cols()))
 	centerY := int(row[1] * float32(frame.Rows()))
 	width := int(row[2] * float32(frame.Cols()))

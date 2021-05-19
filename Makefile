@@ -17,12 +17,16 @@ lint:
 test:
 	@echo Running tests...
 	@mkdir -p reports
-	LOGFORMAT=ASCII gotest -covermode=count -p=4 -v -coverprofile reports/codecoverage_all.cov --tags=${GO_TEST_BUILD_TAGS} `go list ./...`
+	LOGFORMAT=ASCII gotest -covermode=count -p=4 -v -coverprofile reports/codecoverage_all.cov `go list ./...`
 	@echo "Done running tests"
 	@go tool cover -func=reports/codecoverage_all.cov > reports/functioncoverage.out
 	@go tool cover -html=reports/codecoverage_all.cov -o reports/coverage.html
 	@echo "View report at $(PWD)/reports/coverage.html"
 	@tail -n 1 reports/functioncoverage.out 
+
+# Opens created coverage report in default browser
+coverage-report:
+	@open reports/coverage.html
 
 # Runs the examples
 bird-example:

@@ -2,12 +2,14 @@ package yolov3
 
 import (
 	"fmt"
+	"image"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
 	"github.com/wimspaargaren/yolov3/internal/ml"
 	"github.com/wimspaargaren/yolov3/internal/ml/mocks"
+	"gocv.io/x/gocv"
 )
 
 type YoloTestSuite struct {
@@ -116,6 +118,109 @@ func (s *YoloTestSuite) TestUnableTocCreateNewNet() {
 			if test.Error != nil {
 				s.Equal(test.Error, err)
 			}
+		})
+	}
+}
+
+func (s *YoloTestSuite) TestClassIDAndConfidence() {
+	tests := []struct {
+		Name              string
+		Input             []float32
+		ExpectedIndex     int
+		ExpetedConfidence float32
+	}{
+		{
+			Name:              "no inputs",
+			ExpectedIndex:     0,
+			ExpetedConfidence: 0,
+		},
+		{
+			Name:              "single inputs",
+			Input:             []float32{99.9},
+			ExpectedIndex:     0,
+			ExpetedConfidence: 99.9,
+		},
+		{
+			Name:              "single inputs",
+			Input:             []float32{70.0, 99.9},
+			ExpectedIndex:     1,
+			ExpetedConfidence: 99.9,
+		},
+		{
+			Name:              "single inputs",
+			Input:             []float32{99.9, 70.0},
+			ExpectedIndex:     0,
+			ExpetedConfidence: 99.9,
+		},
+	}
+
+	for _, test := range tests {
+		s.Run(test.Name, func() {
+			index, confidence := getClassIDAndConfidence(test.Input)
+			s.Equal(test.ExpectedIndex, index)
+			s.Equal(test.ExpetedConfidence, confidence)
+		})
+	}
+}
+
+func (s *YoloTestSuite) TestCalculateBoundingBox() {
+	tests := []struct {
+		Name         string
+		InputFrame   gocv.Mat
+		InputRow     []float32
+		ExpectedRect image.Rectangle
+	}{
+		{
+			Name:         "normal bounding box calculation",
+			InputFrame:   gocv.NewMatWithSize(2, 2, gocv.MatTypeCV16S),
+			InputRow:     []float32{1, 1, 1, 1},
+			ExpectedRect: image.Rect(1, 1, 3, 3),
+		},
+		{
+			Name:         "unexpected row",
+			InputFrame:   gocv.NewMatWithSize(2, 2, gocv.MatTypeCV16S),
+			InputRow:     []float32{1, 1, 1},
+			ExpectedRect: image.Rect(0, 0, 0, 0),
+		},
+	}
+	for _, test := range tests {
+		s.Run(test.Name, func() {
+			rect := calculateBoundingBox(test.InputFrame, test.InputRow)
+			s.Equal(test.ExpectedRect, rect)
+		})
+	}
+}
+
+func (s *YoloTestSuite) TestIsFiltered() {
+	tests := []struct {
+		Name     string
+		ClassID  int
+		ClassIDs map[string]bool
+		Expected bool
+	}{
+		{
+			Name:     "no inputs",
+			Expected: false,
+		},
+		{
+			Name:     "is filtered",
+			ClassID:  1,
+			ClassIDs: map[string]bool{"coffee": true},
+			Expected: true,
+		},
+		{
+			Name:     "is not filtered",
+			ClassID:  0,
+			ClassIDs: map[string]bool{"coffee": true},
+			Expected: false,
+		},
+	}
+	for _, test := range tests {
+		s.Run(test.Name, func() {
+			y := &yoloNet{
+				cocoNames: []string{"laptop", "coffee"},
+			}
+			s.Equal(test.Expected, y.isFiltered(test.ClassID, test.ClassIDs))
 		})
 	}
 }
