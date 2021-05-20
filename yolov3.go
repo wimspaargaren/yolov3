@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/wimspaargaren/yolov3/internal/ml"
 	"gocv.io/x/gocv"
 )
 
@@ -15,8 +15,8 @@ const (
 	inputWidth  = 416
 	inputHeight = 416
 
-	confThreshold = 0.5
-	nmsThreshold  = 0.4
+	confThreshold float32 = 0.5
+	nmsThreshold  float32 = 0.4
 )
 
 // Config optional config of the net
@@ -28,6 +28,8 @@ type Config struct {
 
 	NetTargetType  gocv.NetTargetType
 	NetBackendType gocv.NetBackendType
+
+	newNet func(string, string) ml.NeuralNet
 }
 
 // DefaultConfig creates new default config
@@ -39,6 +41,8 @@ func DefaultConfig() Config {
 		NMSThreshold:        nmsThreshold,
 		NetTargetType:       gocv.NetTargetCPU,
 		NetBackendType:      gocv.NetBackendDefault,
+
+		newNet: initializeNet,
 	}
 }
 
@@ -59,7 +63,7 @@ type Net interface {
 
 // the net implementation
 type yoloNet struct {
-	net       gocv.Net
+	net       ml.NeuralNet
 	cocoNames []string
 
 	inputWidth          int
@@ -69,14 +73,14 @@ type yoloNet struct {
 }
 
 // NewNet creates new yolo net for given weight path, config and coconames list
-func NewNet(weightPath, configPath, cocoNamePath string) (Net, error) {
-	return NewNetWithConfig(weightPath, configPath, cocoNamePath, DefaultConfig())
+func NewNet(weightsPath, configPath, cocoNamePath string) (Net, error) {
+	return NewNetWithConfig(weightsPath, configPath, cocoNamePath, DefaultConfig())
 }
 
 // NewNetWithConfig creates new yolo net with given config
-func NewNetWithConfig(weightPath, configPath, cocoNamePath string, config Config) (Net, error) {
-	if _, err := os.Stat(weightPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("path to net weight not found")
+func NewNetWithConfig(weightsPath, configPath, cocoNamePath string, config Config) (Net, error) {
+	if _, err := os.Stat(weightsPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("path to net weights not found")
 	}
 
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
@@ -88,14 +92,9 @@ func NewNetWithConfig(weightPath, configPath, cocoNamePath string, config Config
 		return nil, err
 	}
 
-	net := gocv.ReadNet(weightPath, configPath)
+	net := config.newNet(weightsPath, configPath)
 
-	err = net.SetPreferableBackend(config.NetBackendType)
-	if err != nil {
-		return nil, err
-	}
-
-	err = net.SetPreferableTarget(config.NetTargetType)
+	err = setNetTargetTypes(net, config)
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +107,24 @@ func NewNetWithConfig(weightPath, configPath, cocoNamePath string, config Config
 		confidenceThreshold: config.ConfidenceThreshold,
 		nmsThreshold:        config.NMSThreshold,
 	}, nil
+}
+
+func initializeNet(weightsPath, configPath string) ml.NeuralNet {
+	net := gocv.ReadNet(weightsPath, configPath)
+	return &net
+}
+
+func setNetTargetTypes(net ml.NeuralNet, config Config) error {
+	err := net.SetPreferableBackend(config.NetBackendType)
+	if err != nil {
+		return err
+	}
+
+	err = net.SetPreferableTarget(config.NetTargetType)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Close closes the net
@@ -123,15 +140,12 @@ func (y *yoloNet) GetDetections(frame gocv.Mat) ([]ObjectDetection, error) {
 func (y *yoloNet) GetDetectionsWithFilter(frame gocv.Mat, classIDsFilter map[string]bool) ([]ObjectDetection, error) {
 	fl := []string{"yolo_82", "yolo_94", "yolo_106"}
 	blob := gocv.BlobFromImage(frame, 1.0/255.0, image.Pt(y.inputWidth, y.inputHeight), gocv.NewScalar(0, 0, 0, 0), true, false)
-	defer func() {
-		err := blob.Close()
-		if err != nil {
-			log.WithError(err).Error("unable to close blob")
-		}
-	}()
+	// nolint: errcheck
+	defer blob.Close()
 	y.net.SetInput(blob, "data")
 
 	outputs := y.net.ForwardLayers(fl)
+
 	detections, err := y.processOutputs(frame, outputs, classIDsFilter)
 	if err != nil {
 		return nil, err
@@ -191,11 +205,17 @@ func (y *yoloNet) processOutputs(frame gocv.Mat, outputs []gocv.Mat, filter map[
 }
 
 func (y *yoloNet) isFiltered(classID int, classIDs map[string]bool) bool {
+	if classIDs == nil {
+		return false
+	}
 	return classIDs[y.cocoNames[classID]]
 }
 
 // calculateBoundingBox calculate the bounding box of the detected object
 func calculateBoundingBox(frame gocv.Mat, row []float32) image.Rectangle {
+	if len(row) < 4 {
+		return image.Rect(0, 0, 0, 0)
+	}
 	centerX := int(row[0] * float32(frame.Cols()))
 	centerY := int(row[1] * float32(frame.Rows()))
 	width := int(row[2] * float32(frame.Cols()))

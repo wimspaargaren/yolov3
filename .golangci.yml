@@ -5,12 +5,10 @@ run:
   tests: true
 
   skip-dirs:
-    - test/data
+    - data
   skip-files:
 
   # list of build tags, all linters use it. Default is empty list
-  build-tags:
-    - e2e
 
 # output configuration options
 output:

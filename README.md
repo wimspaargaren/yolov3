@@ -1,4 +1,7 @@
 # Go YOLO V3
+[![Build Status](https://github.com/wimspaargaren/yolov3/workflows/CI/badge.svg)](https://github.com/wimspaargaren/yolov3/actions)
+[!Coverage Badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/wimspaargaren/336567a087162bcad4e55ebe4b17b457/raw/yolov3__heads_master.json)
+[![Go Reference](https://pkg.go.dev/badge/github.com/wimspaargaren/yolov3.svg)](https://pkg.go.dev/github.com/wimspaargaren/yolov3)
 
 This repository provides a plug and play implementation of the [Yolo V3](https://pjreddie.com/darknet/yolo/) object detection system in Go, leveraging [gocv](https://github.com/hybridgroup/gocv).
 
