@@ -12,16 +12,16 @@ import (
 )
 
 const (
-	vehicleWeights = "../../data/yolov3/yolov3.weights"
-	vehicleNetcfg  = "../../data/yolov3/yolov3.cfg"
-	cocoNames      = "../../data/yolov3/coco.names"
+	yolov3WeightsPath = "../../data/yolov3/yolov3.weights"
+	yolov3ConfigPath  = "../../data/yolov3/yolov3.cfg"
+	cocoNamesPath     = "../../data/yolov3/coco.names"
 )
 
 func main() {
 	imagePath := flag.String("i", "../../data/example_images/bird.jpg", "specify the image path")
 	flag.Parse()
 
-	yolonet, err := yolov3.NewNet(vehicleWeights, vehicleNetcfg, cocoNames)
+	yolonet, err := yolov3.NewNet(yolov3WeightsPath, yolov3ConfigPath, cocoNamesPath)
 	if err != nil {
 		log.WithError(err).Fatal("unable to create yolo net")
 	}

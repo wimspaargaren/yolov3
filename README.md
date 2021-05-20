@@ -45,7 +45,7 @@ Note that this will not run smoothly on most machines, as the default net target
 	conf.NetTargetType = gocv.NetTargetCUDA
 
 	// Create the net with created config
-	yolonet, err := yolov3.NewNetWithConfig(vehicleWeights, vehicleNetcfg, cocoNames, conf)
+	yolonet, err := yolov3.NewNetWithConfig(yolov3WeightsPath, yolov3ConfigPath, cocoNames, conf)
 	if err != nil {
 		log.WithError(err).Fatal("unable to create yolo net")
 	}

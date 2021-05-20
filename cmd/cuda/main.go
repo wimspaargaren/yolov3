@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	vehicleWeights = "../../data/yolov3/yolov3.weights"
-	vehicleNetcfg  = "../../data/yolov3/yolov3.cfg"
-	cocoNames      = "../../data/yolov3/coco.names"
+	yolov3WeightsPath = "../../data/yolov3/yolov3.weights"
+	yolov3ConfigPath  = "../../data/yolov3/yolov3.cfg"
+	cocoNamesPath     = "../../data/yolov3/coco.names"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 	conf.NetBackendType = gocv.NetBackendCUDA
 	conf.NetTargetType = gocv.NetTargetCUDA
 
-	yolonet, err := yolov3.NewNetWithConfig(vehicleWeights, vehicleNetcfg, cocoNames, conf)
+	yolonet, err := yolov3.NewNetWithConfig(yolov3WeightsPath, yolov3ConfigPath, cocoNamesPath, conf)
 	if err != nil {
 		log.WithError(err).Fatal("unable to create yolo net")
 	}

@@ -1,4 +1,4 @@
-// Package yolov3 provides a go implementation of the yolov3 object detection system: https://pjreddie.com/darknet/yolo/
+// Package yolov3 provides a go implementation of the yolov3 object detection system: https://pjreddie.com/darknet/yolo/.
 package yolov3
 
 import (
@@ -19,20 +19,24 @@ const (
 	nmsThreshold  float32 = 0.4
 )
 
-// Config optional config of the net
+// Config can be used to configure how to detect objects
 type Config struct {
-	InputWidth          int
-	InputHeight         int
+	// InputWidth & InputHeight are used to determine the input size of the image for the networ
+	InputWidth  int
+	InputHeight int
+	// ConfidenceThreshold can be used to determine the minimum confidence before an object is considered to be "detected"
 	ConfidenceThreshold float32
-	NMSThreshold        float32
+	// Non-maximum suppression threshold used for removing overlapping bounding boxes
+	NMSThreshold float32
 
+	// Type on which the network will be executed
 	NetTargetType  gocv.NetTargetType
 	NetBackendType gocv.NetBackendType
 
 	newNet func(string, string) ml.NeuralNet
 }
 
-// DefaultConfig creates new default config
+// DefaultConfig used by NewNet
 func DefaultConfig() Config {
 	return Config{
 		InputWidth:          inputWidth,
