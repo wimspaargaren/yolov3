@@ -14,20 +14,10 @@ import (
 
 type YoloTestSuite struct {
 	suite.Suite
-
-	neuralNetMock *mocks.MockNeuralNet
 }
 
 func TestYoloTestSuite(t *testing.T) {
 	suite.Run(t, new(YoloTestSuite))
-}
-
-func (s *YoloTestSuite) SetupTest() {
-	controller := gomock.NewController(s.T())
-	s.neuralNetMock = mocks.NewMockNeuralNet(controller)
-}
-
-func (s *YoloTestSuite) TearDownSuite() {
 }
 
 func (s *YoloTestSuite) TestCorrectImplementation() {
@@ -280,6 +270,18 @@ func (s *YoloTestSuite) TestProcessOutputs() {
 			Result:      []ObjectDetection{},
 		},
 		{
+			Name:       "Confidence not high enough",
+			InputFrame: gocv.NewMatWithSize(2, 2, gocv.MatTypeCV32F),
+			InputOutputs: func() []gocv.Mat {
+				coffeeDetection := coffeeDetection()
+
+				return []gocv.Mat{coffeeDetection}
+			}(),
+			InputConfidenceThreshHold: 999,
+			InputFilter:               map[string]bool{"coffee": true},
+			Result:                    []ObjectDetection{},
+		},
+		{
 			Name:       "Filter overlapping frame",
 			InputFrame: gocv.NewMatWithSize(2, 2, gocv.MatTypeCV32F),
 			InputOutputs: func() []gocv.Mat {
@@ -312,6 +314,82 @@ func (s *YoloTestSuite) TestProcessOutputs() {
 				s.Require().NoError(err)
 			}
 			s.Equal(test.Result, detections)
+		})
+	}
+}
+
+func (s *YoloTestSuite) TestGetDetections() {
+	tests := []struct {
+		Name                      string
+		InputFrame                gocv.Mat
+		InputConfidenceThreshHold float32
+		Result                    []ObjectDetection
+		ExpectError               bool
+		SetupNeuralNetMock        func() *mocks.MockNeuralNet
+		Panics                    bool
+	}{
+		{
+			Name:       "Get successful detection",
+			InputFrame: gocv.NewMatWithSize(2, 2, gocv.MatTypeCV32F),
+			SetupNeuralNetMock: func() *mocks.MockNeuralNet {
+				controller := gomock.NewController(s.T())
+				neuralNetMock := mocks.NewMockNeuralNet(controller)
+				neuralNetMock.EXPECT().SetInput(gomock.Any(), "data").Times(1)
+
+				neuralNetMock.EXPECT().ForwardLayers(gomock.Any()).Return(func() []gocv.Mat {
+					laptopDetection := laptopDetection()
+					coffeeDetection := coffeeDetection()
+
+					return []gocv.Mat{laptopDetection, coffeeDetection}
+				}()).Times(1)
+				return neuralNetMock
+			},
+			Result: []ObjectDetection{
+				{
+					ClassID:     0,
+					Confidence:  9,
+					ClassName:   "laptop",
+					BoundingBox: image.Rect(1, 1, 3, 3),
+				},
+				{
+					ClassID:     1,
+					Confidence:  9,
+					ClassName:   "coffee",
+					BoundingBox: image.Rect(-1, 1, 1, 3),
+				},
+			},
+		},
+		{
+			Name:       "Incorrect input layer provided",
+			InputFrame: gocv.NewMatWithSize(2, 2, gocv.MatTypeCV32F),
+			SetupNeuralNetMock: func() *mocks.MockNeuralNet {
+				controller := gomock.NewController(s.T())
+				neuralNetMock := mocks.NewMockNeuralNet(controller)
+				neuralNetMock.EXPECT().SetInput(gomock.Any(), "data").Times(1)
+				neuralNetMock.EXPECT().ForwardLayers(gomock.Any()).Return([]gocv.Mat{gocv.NewMatWithSize(1, 10, gocv.MatTypeCV16S)}).Times(1)
+				return neuralNetMock
+			},
+			ExpectError: true,
+		},
+	}
+	for _, test := range tests {
+		s.Run(test.Name, func() {
+			y := &yoloNet{
+				cocoNames:           []string{"laptop", "coffee"},
+				confidenceThreshold: test.InputConfidenceThreshHold,
+				net:                 test.SetupNeuralNetMock(),
+			}
+			if test.Panics {
+				s.Panics(func() { y.GetDetections(test.InputFrame) })
+			} else {
+				detections, err := y.GetDetections(test.InputFrame)
+				if test.ExpectError {
+					s.Error(err)
+				} else {
+					s.Require().NoError(err)
+				}
+				s.Equal(test.Result, detections)
+			}
 		})
 	}
 }

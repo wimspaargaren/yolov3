@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/wimspaargaren/yolov3/internal/ml"
 	"gocv.io/x/gocv"
 )
@@ -141,15 +140,12 @@ func (y *yoloNet) GetDetections(frame gocv.Mat) ([]ObjectDetection, error) {
 func (y *yoloNet) GetDetectionsWithFilter(frame gocv.Mat, classIDsFilter map[string]bool) ([]ObjectDetection, error) {
 	fl := []string{"yolo_82", "yolo_94", "yolo_106"}
 	blob := gocv.BlobFromImage(frame, 1.0/255.0, image.Pt(y.inputWidth, y.inputHeight), gocv.NewScalar(0, 0, 0, 0), true, false)
-	defer func() {
-		err := blob.Close()
-		if err != nil {
-			log.WithError(err).Error("unable to close blob")
-		}
-	}()
+	// nolint: errcheck
+	defer blob.Close()
 	y.net.SetInput(blob, "data")
 
 	outputs := y.net.ForwardLayers(fl)
+
 	detections, err := y.processOutputs(frame, outputs, classIDsFilter)
 	if err != nil {
 		return nil, err
