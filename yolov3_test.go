@@ -172,13 +172,13 @@ func (s *YoloTestSuite) TestCalculateBoundingBox() {
 	}{
 		{
 			Name:         "normal bounding box calculation",
-			InputFrame:   gocv.NewMatWithSize(2, 2, gocv.MatTypeCV16S),
+			InputFrame:   gocv.NewMatWithSize(2, 2, gocv.MatTypeCV32F),
 			InputRow:     []float32{1, 1, 1, 1},
 			ExpectedRect: image.Rect(1, 1, 3, 3),
 		},
 		{
 			Name:         "unexpected row",
-			InputFrame:   gocv.NewMatWithSize(2, 2, gocv.MatTypeCV16S),
+			InputFrame:   gocv.NewMatWithSize(2, 2, gocv.MatTypeCV32F),
 			InputRow:     []float32{1, 1, 1},
 			ExpectedRect: image.Rect(0, 0, 0, 0),
 		},
@@ -223,4 +223,117 @@ func (s *YoloTestSuite) TestIsFiltered() {
 			s.Equal(test.Expected, y.isFiltered(test.ClassID, test.ClassIDs))
 		})
 	}
+}
+
+func (s *YoloTestSuite) TestProcessOutputs() {
+	tests := []struct {
+		Name                      string
+		InputFrame                gocv.Mat
+		InputOutputs              []gocv.Mat
+		InputFilter               map[string]bool
+		InputConfidenceThreshHold float32
+		Result                    []ObjectDetection
+		ExpectError               bool
+	}{
+		{
+			Name:       "Two rows containing two predictions",
+			InputFrame: gocv.NewMatWithSize(2, 2, gocv.MatTypeCV32F),
+			InputOutputs: func() []gocv.Mat {
+				laptopDetection := laptopDetection()
+				coffeeDetection := coffeeDetection()
+
+				return []gocv.Mat{laptopDetection, coffeeDetection}
+			}(),
+			InputFilter: map[string]bool{},
+			Result: []ObjectDetection{
+				{
+					ClassID:     0,
+					Confidence:  9,
+					ClassName:   "laptop",
+					BoundingBox: image.Rect(1, 1, 3, 3),
+				},
+				{
+					ClassID:     1,
+					Confidence:  9,
+					ClassName:   "coffee",
+					BoundingBox: image.Rect(-1, 1, 1, 3),
+				},
+			},
+		},
+		{
+			Name:       "Incorrect input layer provided",
+			InputFrame: gocv.NewMatWithSize(2, 2, gocv.MatTypeCV32F),
+			InputOutputs: func() []gocv.Mat {
+				return []gocv.Mat{gocv.NewMatWithSize(1, 10, gocv.MatTypeCV16S)}
+			}(),
+			ExpectError: true,
+		},
+		{
+			Name:       "Result was filtered",
+			InputFrame: gocv.NewMatWithSize(2, 2, gocv.MatTypeCV32F),
+			InputOutputs: func() []gocv.Mat {
+				coffeeDetection := coffeeDetection()
+
+				return []gocv.Mat{coffeeDetection}
+			}(),
+			InputFilter: map[string]bool{"coffee": true},
+			Result:      []ObjectDetection{},
+		},
+		{
+			Name:       "Filter overlapping frame",
+			InputFrame: gocv.NewMatWithSize(2, 2, gocv.MatTypeCV32F),
+			InputOutputs: func() []gocv.Mat {
+				coffeeDetection1 := coffeeDetection()
+				coffeeDetection2 := coffeeDetection()
+				coffeeDetection2.SetFloatAt(0, 6, 10)
+				return []gocv.Mat{coffeeDetection1, coffeeDetection2}
+			}(),
+			InputFilter: map[string]bool{},
+			Result: []ObjectDetection{
+				{
+					ClassID:     1,
+					Confidence:  10,
+					ClassName:   "coffee",
+					BoundingBox: image.Rect(-1, 1, 1, 3),
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		s.Run(test.Name, func() {
+			y := &yoloNet{
+				cocoNames:           []string{"laptop", "coffee"},
+				confidenceThreshold: test.InputConfidenceThreshHold,
+			}
+			detections, err := y.processOutputs(test.InputFrame, test.InputOutputs, test.InputFilter)
+			if test.ExpectError {
+				s.Error(err)
+			} else {
+				s.Require().NoError(err)
+			}
+			s.Equal(test.Result, detections)
+		})
+	}
+}
+
+func laptopDetection() gocv.Mat {
+	laptopDetection := gocv.NewMatWithSize(1, 10, gocv.MatTypeCV32F)
+	laptopDetection.SetFloatAt(0, 0, 1)
+	laptopDetection.SetFloatAt(0, 1, 1)
+	laptopDetection.SetFloatAt(0, 2, 1)
+	laptopDetection.SetFloatAt(0, 3, 1)
+	// Index for laptop == 5
+	laptopDetection.SetFloatAt(0, 5, 9)
+	return laptopDetection
+}
+
+func coffeeDetection() gocv.Mat {
+	coffeeDetection := gocv.NewMatWithSize(1, 10, gocv.MatTypeCV32F)
+	coffeeDetection.SetFloatAt(0, 1, 1)
+	coffeeDetection.SetFloatAt(0, 2, 1)
+	coffeeDetection.SetFloatAt(0, 3, 1)
+	coffeeDetection.SetFloatAt(0, 3, 1)
+	// Index for coffee == 6
+	coffeeDetection.SetFloatAt(0, 6, 9)
+	return coffeeDetection
 }
