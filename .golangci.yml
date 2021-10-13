@@ -113,7 +113,7 @@ linters:
     - gofmt
     - gofumpt
     - goheader
-    - golint
+    - revive
     - gomodguard
     - goprintffuncname
     - gosimple 
