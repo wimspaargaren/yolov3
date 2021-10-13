@@ -3,13 +3,17 @@ package yolov3
 import (
 	"fmt"
 	"image"
+	"os"
+	"path"
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
+	"gocv.io/x/gocv"
+
 	"github.com/wimspaargaren/yolov3/internal/ml"
 	"github.com/wimspaargaren/yolov3/internal/ml/mocks"
-	"gocv.io/x/gocv"
 )
 
 type YoloTestSuite struct {
@@ -31,10 +35,25 @@ func (s *YoloTestSuite) TestNewDefaultNetCorrectCreation() {
 
 	s.NotNil(yoloNet.net)
 	s.Equal(81, len(yoloNet.cocoNames))
-	s.Equal(inputWidth, yoloNet.inputWidth)
-	s.Equal(inputHeight, yoloNet.inputHeight)
-	s.Equal(confThreshold, yoloNet.confidenceThreshold)
-	s.Equal(nmsThreshold, yoloNet.nmsThreshold)
+	s.Equal(DefaultInputWidth, yoloNet.DefaultInputWidth)
+	s.Equal(DefaultInputHeight, yoloNet.DefaultInputHeight)
+	s.Equal(DefaultConfThreshold, yoloNet.confidenceThreshold)
+	s.Equal(DefaultNMSThreshold, yoloNet.DefaultNMSThreshold)
+
+	s.NoError(yoloNet.Close())
+}
+
+func (s *YoloTestSuite) TestNewCustomConfig_MissingNewNetFunc_CorrectCreation() {
+	net, err := NewNetWithConfig("data/yolov3/yolov3.weights", "data/yolov3/yolov3.cfg", "data/yolov3/coco.names", Config{})
+	s.Require().NoError(err)
+	yoloNet := net.(*yoloNet)
+
+	s.NotNil(yoloNet.net)
+	s.Equal(81, len(yoloNet.cocoNames))
+	s.Equal(DefaultInputWidth, yoloNet.DefaultInputWidth)
+	s.Equal(DefaultInputHeight, yoloNet.DefaultInputHeight)
+	s.Equal(float32(0), yoloNet.confidenceThreshold)
+	s.Equal(float32(0), yoloNet.DefaultNMSThreshold)
 
 	s.NoError(yoloNet.Close())
 }
@@ -100,7 +119,7 @@ func (s *YoloTestSuite) TestUnableTocCreateNewNet() {
 
 	for _, test := range tests {
 		s.Run(test.Name, func() {
-			test.Config.newNet = func(string, string) ml.NeuralNet {
+			test.Config.NewNet = func(string, string) ml.NeuralNet {
 				return test.SetupNeuralNetMock()
 			}
 			_, err := NewNetWithConfig(test.WeightsPath, test.ConfigPath, test.CocoNamePath, test.Config)
@@ -414,4 +433,72 @@ func coffeeDetection() gocv.Mat {
 	// Index for coffee == 6
 	coffeeDetection.SetFloatAt(0, 6, 9)
 	return coffeeDetection
+}
+
+func ExampleNewNet() {
+	yolov3WeightsPath := path.Join(os.Getenv("GOPATH"), "src/github.com/wimspaargaren/data/yolov3/yolov3.weights")
+	yolov3ConfigPath := path.Join(os.Getenv("GOPATH"), "src/github.com/wimspaargaren/data/yolov3/yolov3.cfg")
+	cocoNamesPath := path.Join(os.Getenv("GOPATH"), "src/github.com/wimspaargaren/data/yolov3/coco.names")
+
+	yolonet, err := NewNet(yolov3WeightsPath, yolov3ConfigPath, cocoNamesPath)
+	if err != nil {
+		log.WithError(err).Fatal("unable to create yolo net")
+	}
+
+	// Gracefully close the net when the program is done
+	defer func() {
+		err := yolonet.Close()
+		if err != nil {
+			log.WithError(err).Error("unable to gracefully close yolo net")
+		}
+	}()
+
+	imagePath := path.Join(os.Getenv("GOPATH"), "src/github.com/wimspaargaren/yolov3/data/example_images/bird.jpg")
+	frame := gocv.IMRead(imagePath, gocv.IMReadColor)
+
+	detections, err := yolonet.GetDetections(frame)
+	if err != nil {
+		log.WithError(err).Fatal("unable to retrieve predictions")
+	}
+
+	DrawDetections(&frame, detections)
+
+	window := gocv.NewWindow("Result Window")
+	defer func() {
+		err := window.Close()
+		if err != nil {
+			log.WithError(err).Error("unable to close window")
+		}
+	}()
+
+	window.IMShow(frame)
+	window.ResizeWindow(872, 585)
+
+	window.WaitKey(10000000000)
+}
+
+func ExampleNewNetWithConfig() {
+	yolov3WeightsPath := path.Join(os.Getenv("GOPATH"), "src/github.com/wimspaargaren/data/yolov3/yolov3.weights")
+	yolov3ConfigPath := path.Join(os.Getenv("GOPATH"), "src/github.com/wimspaargaren/data/yolov3/yolov3.cfg")
+	cocoNamesPath := path.Join(os.Getenv("GOPATH"), "src/github.com/wimspaargaren/data/yolov3/coco.names")
+
+	conf := DefaultConfig()
+	// Set the neural net to use CUDA
+	conf.NetBackendType = gocv.NetBackendCUDA
+	conf.NetTargetType = gocv.NetTargetCUDA
+
+	yolonet, err := NewNetWithConfig(yolov3WeightsPath, yolov3ConfigPath, cocoNamesPath, conf)
+	if err != nil {
+		log.WithError(err).Fatal("unable to create yolo net")
+	}
+
+	// Gracefully close the net when the program is done
+	defer func() {
+		err := yolonet.Close()
+		if err != nil {
+			log.WithError(err).Error("unable to gracefully close yolo net")
+		}
+	}()
+
+	// ...
 }

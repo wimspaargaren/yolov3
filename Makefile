@@ -50,3 +50,14 @@ ci-lint:
 
 ci-test:
 	@docker run yolov3-ci make test
+
+$(GOBIN)/gofumpt:
+	@GO111MODULE=on go get mvdan.cc/gofumpt
+	@go mod tidy
+
+gofumpt: | $(GOBIN)/gofumpt
+	@gofumpt -w
+
+gci:
+	@gci -local="github.com/wimspaargaren/yolov3" -w $(shell ls  -d $(PWD)/* | grep -v mocks)
+	@gci -local="github.com/wimspaargaren/yolov3" -w $(shell ls  -d $(PWD)/cmd/*)
