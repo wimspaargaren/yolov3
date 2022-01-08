@@ -183,6 +183,10 @@ func (y *yoloNet) GetDetectionsWithFilter(frame gocv.Mat, classIDsFilter map[str
 		return nil, err
 	}
 
+	for i, _ := range outputs {
+		_ = outputs[i].Close()
+	}
+
 	return detections, nil
 }
 
