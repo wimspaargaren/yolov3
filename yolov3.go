@@ -200,8 +200,8 @@ func (y *yoloNet) processOutputs(frame gocv.Mat, outputs []gocv.Mat, filter map[
 		if err != nil {
 			return nil, err
 		}
-		for x := 0; x < outputs[i].Total(); x += outputs[i].Cols() {
-			row := data[x : x+outputs[i].Cols()]
+		for j := 0; j < outputs[i].Total(); j += outputs[i].Cols() {
+			row := data[j : j+outputs[i].Cols()]
 			scores := row[5:]
 			classID, confidence := getClassIDAndConfidence(scores)
 			if y.isFiltered(classID, filter) {
