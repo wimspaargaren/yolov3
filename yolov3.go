@@ -177,14 +177,14 @@ func (y *yoloNet) GetDetectionsWithFilter(frame gocv.Mat, classIDsFilter map[str
 	y.net.SetInput(blob, "data")
 
 	outputs := y.net.ForwardLayers(fl)
+	for i, _ := range outputs {
+		// nolint: errcheck
+		defer outputs[i].Close()
+	}
 
 	detections, err := y.processOutputs(frame, outputs, classIDsFilter)
 	if err != nil {
 		return nil, err
-	}
-
-	for i, _ := range outputs {
-		_ = outputs[i].Close()
 	}
 
 	return detections, nil
