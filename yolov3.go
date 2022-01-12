@@ -177,6 +177,10 @@ func (y *yoloNet) GetDetectionsWithFilter(frame gocv.Mat, classIDsFilter map[str
 	y.net.SetInput(blob, "data")
 
 	outputs := y.net.ForwardLayers(fl)
+	for i, _ := range outputs {
+		// nolint: errcheck
+		defer outputs[i].Close()
+	}
 
 	detections, err := y.processOutputs(frame, outputs, classIDsFilter)
 	if err != nil {
@@ -192,13 +196,12 @@ func (y *yoloNet) processOutputs(frame gocv.Mat, outputs []gocv.Mat, filter map[
 	bboxes := []image.Rectangle{}
 	confidences := []float32{}
 	for i := 0; i < len(outputs); i++ {
-		output := outputs[i]
-		data, err := output.DataPtrFloat32()
+		data, err := outputs[i].DataPtrFloat32()
 		if err != nil {
 			return nil, err
 		}
-		for i := 0; i < output.Total(); i += output.Cols() {
-			row := data[i : i+output.Cols()]
+		for j := 0; j < outputs[i].Total(); j += outputs[i].Cols() {
+			row := data[j : j+outputs[i].Cols()]
 			scores := row[5:]
 			classID, confidence := getClassIDAndConfidence(scores)
 			if y.isFiltered(classID, filter) {
