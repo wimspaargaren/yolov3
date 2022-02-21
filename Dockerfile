@@ -1,4 +1,4 @@
-FROM gocv/opencv:4.5.4
+FROM gocv/opencv:4.5.5
 
 # Install dependencies
 RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.42.1
