@@ -41,7 +41,7 @@ jobs:
           COVERAGE_PERCENTAGE=$(echo $(echo $TEST_OUT | sed -n 's/.*)\s*\(.*\)/\1/p'))
           echo "COVERAGE=$(echo ${COVERAGE_PERCENTAGE})" >> $GITHUB_ENV
       - name: Create the Badge
-        uses: schneegans/dynamic-badges-action@v1.2.0
+        uses: schneegans/dynamic-badges-action@v1.3.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
           gistID: 336567a087162bcad4e55ebe4b17b457
