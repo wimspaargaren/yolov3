@@ -1,15 +1,15 @@
 module github.com/wimspaargaren/yolov3
 
-go 1.20
+go 1.21
 
 require (
 	github.com/golang/mock v1.6.0
 	github.com/kr/pretty v0.3.0 // indirect
-	github.com/sirupsen/logrus v1.9.0
-	github.com/stretchr/objx v0.5.0 // indirect
-	github.com/stretchr/testify v1.8.1
+	github.com/sirupsen/logrus v1.9.3
+	github.com/stretchr/objx v0.5.1 // indirect
+	github.com/stretchr/testify v1.8.4
 	gocv.io/x/gocv v0.34.0
-	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
+	golang.org/x/sys v0.11.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
 
