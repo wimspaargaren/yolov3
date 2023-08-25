@@ -224,9 +224,8 @@ func (y *yoloNet) processOutputs(frame gocv.Mat, outputs []gocv.Mat, filter map[
 	if len(bboxes) == 0 {
 		return detections, nil
 	}
-	indices := make([]int, len(bboxes))
 
-	gocv.NMSBoxes(bboxes, confidences, y.confidenceThreshold, y.DefaultNMSThreshold, indices)
+	indices := gocv.NMSBoxes(bboxes, confidences, y.confidenceThreshold, y.DefaultNMSThreshold)
 	result := []ObjectDetection{}
 	for i, indice := range indices {
 		// If we encounter value 0 skip the detection

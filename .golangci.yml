@@ -26,7 +26,10 @@ output:
 # all available settings of specific linters
 linters-settings:
   gci:
-    local-prefixes: github.com/wimspaargaren/yolov3
+    sections:
+      - standard # Captures all standard packages if they do not match another section.
+      - default # Contains all imports that could not be matched to another section type.
+      - prefix(github.com/wimspaargaren/yolov3)
   errcheck:
     check-type-assertions: false
 
@@ -37,7 +40,8 @@ linters-settings:
 
   golint:
     min-confidence: 0.8
-
+  nestif:
+    min-complexity: 10
   gofmt:
     simplify: true
   gocyclo:
@@ -62,6 +66,12 @@ linters-settings:
     locale: UK
     ignore-words:
       - color
+      - realization
+      - realized
+      - realize
+      - nationaal
+      - transporteur
+      - fulfillment
   lll:
     line-length: 120
     tab-width: 2
@@ -97,13 +107,12 @@ linters:
   enable:
     - asciicheck
     - bodyclose
-    - deadcode
     - dupl
     - errcheck
     - errorlint
-    - exhaustive
     - exportloopref
     - funlen
+    - unused
     - gci
     - gochecknoglobals
     - gochecknoinits
@@ -125,17 +134,15 @@ linters:
     - nakedret
     - nestif
     - noctx
-    - nolintlint
+    # - nolintlint
     - rowserrcheck
     - sqlclosecheck
     - staticcheck 
-    - structcheck
     - stylecheck
     - tparallel
     - typecheck
     - unconvert
     - unparam
-    - varcheck
     - whitespace
     # Disabled
     # - wsl
@@ -151,7 +158,6 @@ linters:
     # - prealloc
     # - testpackage
     # - wrapcheck
-  disable-all: false
   fast: false
 
 severity: 
@@ -176,7 +182,8 @@ issues:
     - path: _test\.go
       linters:
         - unused
-        - deadcode
+        - goconst
+        - bodyclose
         - gocyclo
         - errcheck
         - dupl

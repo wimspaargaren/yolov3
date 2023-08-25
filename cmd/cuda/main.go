@@ -1,3 +1,4 @@
+// Package main contains an example on how yo run yolov3 with CUDA.
 package main
 
 import (

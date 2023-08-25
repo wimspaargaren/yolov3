@@ -15,10 +15,8 @@ lint:
 
 # Run tests
 test:
-	@echo Running tests...
 	@mkdir -p reports
-	LOGFORMAT=ASCII gotest -covermode=count -p=4 -v -coverprofile reports/codecoverage_all.cov `go list ./...`
-	@echo "Done running tests"
+	@go test -coverprofile=reports/codecoverage_all.cov ./... -cover -race -p=4
 	@go tool cover -func=reports/codecoverage_all.cov > reports/functioncoverage.out
 	@go tool cover -html=reports/codecoverage_all.cov -o reports/coverage.html
 	@echo "View report at $(PWD)/reports/coverage.html"

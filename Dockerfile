@@ -1,11 +1,10 @@
-FROM gocv/opencv:4.5.5
+FROM gocv/opencv:4.8.0
 
 # Install dependencies
-RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.42.1
-RUN go get -u github.com/rakyll/gotest
+RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.53.2
 
-COPY . /go/src/github.com/wimspaargaren/yolov3
+COPY . /go/src/github.com/wimspaargaren/yolov5
 
-WORKDIR /go/src/github.com/wimspaargaren/yolov3
+WORKDIR /go/src/github.com/wimspaargaren/yolov5
 # In order to test a happy flow we need to have the actual config and weights
 RUN make models

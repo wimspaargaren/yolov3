@@ -1,3 +1,4 @@
+// Package main provides an example on how to run yolov3 for a given image.
 package main
 
 import (
